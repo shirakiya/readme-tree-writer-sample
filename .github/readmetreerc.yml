@@ -2,5 +2,3 @@ fileNames:
   - README.md
   - README_dev.md
 chapter: Tree
-exclude:
-  - "."
