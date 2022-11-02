@@ -1,9 +1,6 @@
-name: Check README
+name: Check README on push
 
-on:
-  push:
-  schedule:
-    - cron: "0 0 * * *"
+on: push
 
 jobs:
   readme-tree-writer:
