@@ -1,0 +1,46 @@
+name: Check README on schedule
+
+on:
+  push:  # TODO: for debug. should remove
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  readme-tree-writer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Write tree outputs to README
+        uses: shirakiya/readme-tree-writer@v1
+      - name: Check diff
+        id: check_diff
+        run: |
+          if [ "$(git diff --ignore-space-at-eol . | wc -l)" -gt "0" ]; then
+            echo "Detected diff.  See status below:"
+            git --no-pager diff HEAD .
+            git status
+            echo "is_exist=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_exist=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Create a pull-request if diff exist
+        if: steps.check_diff.outputs.is_exist == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ACTION_RUN_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          COMMIT_MESSAGE="Update tree contents in README"
+          PR_TITLE=$COMMIT_MESSAGE
+          PR_BODY=$(cat << EOL
+          Create this pull-request by readme-tree-writer workflow automatically.
+          Job ref.: $ACTION_RUN_URL
+          EOL
+          )
+          BRANCH="readme-tree-writer/update_readme_$GITHUB_RUN_ID"
+
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git switch -c $BRANCH
+          git commit -am"$COMMIT_MESSAGE"
+          git push origin $BRANCH
+          gh pr create -b "main" -t "$PR_TITLE" -b "$PR_BODY"
